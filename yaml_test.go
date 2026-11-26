@@ -684,6 +684,25 @@ type inlineD struct {
 	D int
 }
 
+func TestJSONTagPriority(t *testing.T) {
+	type record struct {
+		Both     string `json:"external" yaml:"other"`
+		YAMLOnly string `yaml:"yaml_name"`
+		Empty    string `json:"" yaml:"unused"`
+		Hidden   string `json:"-" yaml:"visible"`
+	}
+
+	const document = "external: first\nyaml_name: second\nempty: third\n"
+	var got record
+	err := yaml.Load([]byte(document), &got, yaml.WithKnownFields())
+	assert.NoError(t, err)
+	assert.DeepEqual(t, record{Both: "first", YAMLOnly: "second", Empty: "third"}, got)
+	got.Hidden = "hidden"
+	out, err := yaml.Marshal(got)
+	assert.NoError(t, err)
+	assert.Equal(t, document, string(out))
+}
+
 func TestUnmarshal(t *testing.T) {
 	for i, item := range unmarshalTests {
 		t.Run(fmt.Sprintf("test %d: %q", i, item.data), func(t *testing.T) {
